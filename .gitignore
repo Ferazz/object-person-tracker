@@ -1,3 +1,7 @@
+# Images for model training if exists
+*.jpg
+*.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
