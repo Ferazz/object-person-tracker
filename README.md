@@ -1,1 +1,1 @@
-# object-person-tracker
+# paintball-person-tracker
