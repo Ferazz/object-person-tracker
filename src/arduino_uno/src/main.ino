@@ -38,10 +38,11 @@ enum TriggerServoSettings {
 };
 
 /* SERIAL INTERFACE SETTINGS */
-const uint32_t BAUDRATE = 9600; //57600, 115200
-const uint8_t BUFFER_SIZE = 4;
-
+const uint32_t BAUDRATE = 115200; //57600, 115200
+const uint8_t BUFFER_SIZE = 3; // 3 ASCII Characters max (will not send bigger than 3 digit number)
+const uint8_t COMPLETE_MESSAGE_LENGTH = BUFFER_SIZE * 2 + 2;
 char buf[BUFFER_SIZE]; // [X, Y] One byte int of range [-128, 127] should be enough to represent degree error
+int16_t recievedAngularErrors[2];
 enum Axis {
   X = 0,
   Y = 1
@@ -52,23 +53,28 @@ void setup() {
   // Initiate all hardware components
   initSteppers();
   triggerServo.attach(TRIGGER_SERVO_PIN);  
+  triggerServo.write(TriggerServoSettings::RESET_POS);
   Serial.begin(BAUDRATE);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  if (Serial.available() == COMPLETE_MESSAGE_LENGTH) {
+    readRecievedMessage();
+    #ifdef DEBUG
+      triggerServo.write(recievedAngularErrors[0]);
+      delay(800);
+      triggerServo.write(recievedAngularErrors[1]);
+      delay(800);
+      return;
+    #endif
 
-  // New bytes available if a new batch of detection data has been sent
-  if (Serial.available() > 0) {
 
-    size_t numBytesRead = Serial.readBytes(buf, BUFFER_SIZE);
-    printf("Bytes read: %d", numBytesRead);
-
-    int16_t xAngleError = buf[Axis::X];
-    int16_t yAngleError = buf[Axis::Y];
+    int16_t xAngleError = recievedAngularErrors[Axis::X];
+    int16_t yAngleError = recievedAngularErrors[Axis::Y];
 
     int16_t deltaBaseAngularErrors[2];
-    convertCoordinates(xAngleError, yAngleError, deltaBaseAngularErrors);
+    convertAnglesToDeltaBase(xAngleError, yAngleError, deltaBaseAngularErrors);
 
     int16_t xDeltaAngleError = deltaBaseAngularErrors[Axis::X];
     int16_t yDeltaAngleError = deltaBaseAngularErrors[Axis::Y];
@@ -100,6 +106,32 @@ void initSteppers() {
   }
 }
 
+/**
+ * Read and convert a message from the Serial interface to integers. 
+ * Prerequisite: Expects 8 bytes to be stored on the Serial connection (BBB'\n'BBB'\n')
+*/
+void readRecievedMessage() {
+  // Read the angular errors from the serial interface
+  readSerialBytes(Axis::X);
+  readSerialBytes(Axis::Y);
+
+  #ifdef DEBUG 
+    Serial.print("X: ");
+    Serial.println(recievedAngularErrors[0]);
+    Serial.print("Y: ");
+    Serial.println(recievedAngularErrors[1]);
+  #endif
+}
+
+/**
+ * Read and convert the serial bytes until '\n' into an int16_t and insert them into index of recievedAngularErrors 
+*/
+void readSerialBytes(uint8_t index) {
+  Serial.readBytesUntil('\n', buf, BUFFER_SIZE);
+  Serial.read(); // Used to remove the '\n' from the previous message
+  recievedAngularErrors[index] = atoi(buf);
+}
+
 
 /**
  * Converts cartesian angular errors to the coordinate system of the delta kinematics rig.
@@ -107,7 +139,7 @@ void initSteppers() {
  * @param yCartesianAngleError angle error in cartesian y-axis
  * @param deltaBaseAngularErrors return array of calculated coordinates in new coordinate system
 */
-void convertCoordinates(int16_t xCartesianAngleError, int16_t yCartesianAngleError, int16_t deltaBaseAngularErrors[2]) {
+void convertAnglesToDeltaBase(int16_t xCartesianAngleError, int16_t yCartesianAngleError, int16_t deltaBaseAngularErrors[2]) {
   // TODO
 }
   
@@ -118,6 +150,8 @@ void convertCoordinates(int16_t xCartesianAngleError, int16_t yCartesianAngleErr
 */
 void speedPIDController(int16_t xAngleError, int16_t yAngleError) {
   // TODO
+  for (AccelStepper stepper : steppers) {
+  }
 }
 
 /**
