@@ -1,8 +1,6 @@
 FROM ros:foxy
 
-# To run this a secret called user_password needs to be set
-
-RUN apt update && apt install --fix-missing -y ros-foxy-rviz2 '?name(ros-foxy-rqt.*)' 
+RUN apt update && apt install --fix-missing -y ros-foxy-rviz2 '?name(ros-foxy-rqt.*)'
 
 RUN apt install -y python3-pip
 RUN pip install numpy==1.20.3
@@ -31,10 +29,10 @@ RUN echo "\nsource \"/opt/ros/foxy/setup.zsh\"" >> /etc/zsh/zshrc
 RUN ldconfig
 
 
+# FIXME: Currently needs to use this so newly created packages and folders are not owned by root
 # Create a non-root user with the same user and group IDs
-RUN addgroup --gid 1000 sebastian_docker && \
-    adduser --uid 1000 --ingroup sebastian_docker --disabled-password --gecos "" sebastian_docker
-USER sebastian_docker
-
+# RUN addgroup --gid 1000 sebastian_docker && \
+#     adduser --uid 1000 --ingroup sebastian_docker --disabled-password --gecos "" sebastian_docker
+#USER sebastian_docker
 
 WORKDIR /workspace/paintball-person-tracker

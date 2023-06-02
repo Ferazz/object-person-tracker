@@ -18,7 +18,7 @@ class ArduinoCommunicator(serial.Serial):
     def send_angular_error(self, x, y):
         self.write((f"{x:0>3}\n" + f"{y:0>3}\n").encode('utf-8'))
 
-    def recieve_data(self) -> str:
+    def receive_data(self) -> str:
         return self.readline().decode('utf-8').rstrip()
 
 if __name__ == "__main__":
