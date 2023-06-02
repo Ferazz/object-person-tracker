@@ -21,7 +21,11 @@ services:
       - ROS_LOCALHOST_ONLY=1
       - ROS_DOMAIN_ID=42
       - USER_PASSWORD
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/ttyACM0:/dev/ttyACM0
     network_mode: host
+    command: source install/setup.zsh
     ipc: host
     tty: True
     privileged: true
