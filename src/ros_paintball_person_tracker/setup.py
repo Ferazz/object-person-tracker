@@ -26,6 +26,7 @@ setup(
             'yolo = ros_paintball_person_tracker.yolo_detector:main',
             'visualizer = ros_paintball_person_tracker.visualizer:main',
             'serial = ros_paintball_person_tracker.serial_talker:main',
+            'robot_controller = ros_paintball_person_tracker.robot_controller:main',
         ],
     },
 )

@@ -17,7 +17,7 @@ class SerialTalker(Node):
         self.bus.reset_input_buffer()
         self.bus.reset_output_buffer()
 
-        self.serial_sub = self.create_subscription(Vector3, 'serial_out', self.send_serial_cb, 10)
+        self.serial_sub = self.create_subscription(Vector3, 'serial_out/angular_error', self.send_serial_cb, 10)
         self.serial_pub = self.create_publisher(Vector3, 'serial_in', 10)
         #self.serial_poll_timer = self.create_timer(1/ POLL_RATE, self.receive_serial_cb)
     def send_serial_cb(self, msg):
