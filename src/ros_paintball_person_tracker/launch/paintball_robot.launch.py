@@ -24,4 +24,18 @@ def generate_launch_description():
                 {'center_offset': CENTER_OFFSET}
             ],
         ),
+        Node(
+            package='ros_paintball_person_tracker',
+            executable='robot_controller',
+            output='screen',
+            emulate_tty=True,
+            parameters=[
+                {'radius': RADIUS},
+                {'center_offset': CENTER_OFFSET}
+            ],
+        ),
+        Node(
+            package='ros_paintball_person_tracker',
+            executable='serial',
+        ),
     ])
