@@ -21,7 +21,8 @@ def generate_launch_description():
             executable='visualizer',
             parameters=[
                 {'radius': RADIUS},
-                {'center_offset': CENTER_OFFSET}
+                {'center_offset': CENTER_OFFSET},
+                {'only_person': True}
             ],
         ),
         Node(

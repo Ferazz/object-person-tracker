@@ -16,6 +16,7 @@ class VisualizerNode(Node):
         self.logger.info("Visualizer starting...")
         self.declare_parameter('center_offset')
         self.declare_parameter('radius')
+        self.declare_parameter('only_person')
         image_sub = Subscriber(self, Image, "image")
         yolo_sub = Subscriber(self, YoloResults, "yolo_objects")
         self.synchronizer = TimeSynchronizer([image_sub, yolo_sub], 10)
@@ -27,23 +28,27 @@ class VisualizerNode(Node):
         frame = self.cv_bridge.imgmsg_to_cv2(image_msg)
         should_fire = False
 
+        only_draw_persons: bool = self.get_parameter('only_person').get_parameter_value().bool_value
+
         image_center = (image_msg.width//2, image_msg.height//2)
         center_offset: Tuple[int, int] = self.get_parameter('center_offset').get_parameter_value().integer_array_value
         circle_reference_point: Tuple[int, int] = (image_center[0] + center_offset[0], image_center[1] + center_offset[1])
         radius: int = self.get_parameter('radius').get_parameter_value().integer_value
 
-        for yolo_object in yolo_objects_msg.yolo_results:
+        for yolo_object in yolo_objects_msg.yolo_results:                
             box = yolo_object.bbox
             red = (0, 0, 255)
-            cv2.rectangle(frame, box[:2], box[2:], color=red, thickness=2)
-            # Add class label and confidence score as text
-            label = f"{yolo_object.type}: {yolo_object.confidence:.2f}"
-            cv2.putText(frame, label, (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, red, 2)
 
-            bbox_mid_point: Tuple[int, int] = (int(box[0] + box[2])//2, int(box[1] + box[3])//2)
-            should_fire = should_fire or calc_distance(bbox_mid_point, circle_reference_point) < radius
-            cv2.circle(frame, bbox_mid_point, 2, (0, 0, 0), 2)
-        
+            if not only_draw_persons or (only_draw_persons and yolo_object.type == 'person'):
+
+                cv2.rectangle(frame, box[:2], box[2:], color=red, thickness=2)
+                # Add class label and confidence score as text
+                label = f"{yolo_object.type}: {yolo_object.confidence:.2f}"
+                cv2.putText(frame, label, (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, red, 2)
+                bbox_mid_point: Tuple[int, int] = (int(box[0] + box[2])//2, int(box[1] + box[3])//2)
+                should_fire = should_fire or calc_distance(bbox_mid_point, circle_reference_point) < radius
+                cv2.circle(frame, bbox_mid_point, 2, (0, 0, 0), 2)
+            
 
         if should_fire:
             cv2.circle(frame, circle_reference_point, radius, (0, 255, 0), 3)            

@@ -1,7 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Vector3
-from interfaces.msg import YoloResults
+from interfaces.msg import YoloResults, ArduinoPackage
 import math
 from typing import Tuple
 
@@ -19,9 +18,10 @@ class RobotController(Node):
         self.declare_parameter('center_offset')
         self.declare_parameter('radius')
         self.yolo_sub = self.create_subscription(YoloResults, 'yolo_objects', self.yolo_cb, 10)
-        self.serial_pub = self.create_publisher(Vector3, 'serial_out/angular_error', 10)
+        self.serial_pub = self.create_publisher(ArduinoPackage, 'serial_out/angular_error', 10)
         self.DEGREE_PER_PIXEL = 0.1
         self.logger.info('Robot controller started')
+        self.is_firing = False # Flip-flop
 
     def yolo_cb(self, msg):
         
@@ -47,17 +47,38 @@ class RobotController(Node):
             x_pixel_error: int = person_mid_point[0] - image_center[0]
             y_pixel_error: int = image_center[1] - person_mid_point[1]
 
-            angular_error_msg = Vector3()
-            angular_error_msg.x = x_pixel_error * self.DEGREE_PER_PIXEL
-            angular_error_msg.y = y_pixel_error * self.DEGREE_PER_PIXEL
+            angular_error_msg = ArduinoPackage()
+            angular_error_msg.id = ArduinoPackage.ANGULAR_ERROR
+            angular_error_msg.data.append(int(x_pixel_error * self.DEGREE_PER_PIXEL))
+            angular_error_msg.data.append(int(y_pixel_error * self.DEGREE_PER_PIXEL))
+            #self.logger.info(f"X-error: {angular_error_msg.data[0]}, Y-error: {angular_error_msg.data[1]}")
             self.serial_pub.publish(angular_error_msg)
             
             should_fire = calc_distance(circle_reference_point, person_mid_point) < radius
 
-            if should_fire:
-                ...
-               
-    
+            # Flip-flops to minimize amount of serial communication
+            if should_fire and not self.is_firing:
+                self.send_trigger_control_msg(should_fire=True)
+                self.logger.warning("Start firing")
+            
+            if not should_fire and self.is_firing:
+                self.send_trigger_control_msg(should_fire=False)
+                self.logger.warning("Stop firing")
+
+        else:
+            # Failsafe for if the camera or person moves too quickly so the program doesn't
+            # recognize the person going out of frame.
+            if self.is_firing:
+                self.send_trigger_control_msg(should_fire=False)
+                self.logger.warning("Stop firing")
+
+    def send_trigger_control_msg(self, *, should_fire: bool):
+        trigger_control_msg = ArduinoPackage()
+        trigger_control_msg.id = ArduinoPackage.FIRE
+        trigger_control_msg.data.append(should_fire)
+        self.is_firing = should_fire
+        self.serial_pub.publish(trigger_control_msg)
+
 def main(args=None):
     rclpy.init(args=args)
 

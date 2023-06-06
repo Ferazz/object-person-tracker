@@ -29,6 +29,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/YoloResult.msg"
   "msg/YoloResults.msg"
+  "msg/ArduinoPackage.msg"
   DEPENDENCIES std_msgs
  )
 
